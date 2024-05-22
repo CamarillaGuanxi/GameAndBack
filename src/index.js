@@ -1,43 +1,45 @@
 import express from 'express';
-import plantaRoutes from './routes/planta.routes';
-import userRoutes from './routes/user.routes'
-import productosRoutes from './routes/productos.routes'
-import favRoutes from './routes/fav.routes'
-import agruapcionesRoutes from './routes/agrupaciones.routes'
-import foroRoutes from './routes/foro.routes'
-import publicacionRoutes from './routes/publicacion.routes'
+import juegosRoutes from './routes/juegos.routes';
+import userRoutes from './routes/user.routes';
+import salasRoute from './routes/sala.routes';
+import amigos from './routes/amigos.routes';
+import tutorias from './routes/tutorias.routes';
+import swaggerDocs from './swaggerDocs';
+
 
 const jwt = require('jsonwebtoken');
-const app = express()
 
-app.use(express.json())
-app.use('/planta', plantaRoutes);
+const app = express();
+
+app.use(express.json());
+
+app.use('/salas', salasRoute);
+app.use('/juego', juegosRoutes);
 app.use('/user', userRoutes);
-app.use('/productos', productosRoutes)
-app.use('/fav', favRoutes)
-app.use('/agrupaciones', agruapcionesRoutes)
-app.use('/foro', foroRoutes)
-app.use('/publicacion', publicacionRoutes)
+app.use('/amigos', amigos);
+app.use('/tutorias', tutorias);
 
-const PORT = 10000
+
+const PORT = 10000;
 
 app.get('/ping', (req, res) => {
-    console.log('someone pinged here')
-    res.send('Pong')
-})
+  console.log('someone pinged here');
+  res.send('Pong');
+});
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
-})
+  console.log(`Server running on port ${PORT}`);
+  swaggerDocs(app, PORT)
+});
 
 export function authenticateToken(req, res, next) {
-    console.log("authenticating token")
-    const authHeader = req.headers['authorization']
-    const token = authHeader && authHeader.split(' ')[1] // Bearer TOKEN
-    if (token == null) return res.sendStatus(401)
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403)
-        req.user = user
-        next()
-    })
+  console.log("authenticating token");
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  if (token == null) return res.sendStatus(401);
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
 }

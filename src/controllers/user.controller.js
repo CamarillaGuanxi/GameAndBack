@@ -1,238 +1,154 @@
 import { getConnection } from '../database/db';
 require('dotenv').config();
+import mssql from 'mssql';
 
-const db = getConnection();
-const jwt = require('jsonwebtoken');
-
-
-export const getUser = async (req, res) => {
-    try {
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('SELECT * FROM Usuario WHERE id = ?', [id]);
-        if (result.length == 0) {
-                return res.status(404).json({ error: 'Not Found' });
-            }
-        res.json(result[0]);
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(200).status(500).json({ error: 'Internal Server Error' });
-    }
-};
+import jwt from 'jsonwebtoken';
 
 export const loginUser = async (req, res) => {
-    const { email, password } = req.query;
+  const { email, password } = req.query;
+  try {
+    const db = await getConnection();
+    const result = await db.request()
+      .input('email', email)
+      .input('password', password)
+      .query(`
+                SELECT id FROM USUARIO 
+                WHERE email = @email 
+                AND contraseña = @password
+            `);
 
-    try {
-        const result = await db.query('SELECT id FROM Usuario WHERE email = ? AND password = ?', [email, password]);
-        if (result.length == 0) {
-            res.status(401).json({ error: 'Unauthorized' });
-            return;
-        }
-        const id = result[0].id;
-        const accesstoken = jwt.sign({id: id}, process.env.ACCESS_TOKEN_SECRET, { expiresIn: 60*60 })
-        res.status(200).json({ accesstoken: accesstoken })
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
+
+    const usuario = result.recordset[0];
+
+    // Generar el token de acceso con solo el ID del usuario
+    const accessToken = jwt.sign({ id: usuario.id }, process.env.ACCESS_TOKEN_SECRET);
+
+    res.json({ id: usuario.id, accessToken });
+  } catch (error) {
+    console.error('Error al autenticar usuario:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 };
 
-export const registerUser = async (req, res) => {
-    const { username, password, email, fullName } = req.body;
+export const getUserData = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const { id } = req.user;
+    request.input('UserId', mssql.Int, id);
+    const result = await request.execute('getUserData');
 
-    try {
-        const result = await db.query('INSERT INTO Usuario (username, password, profilePictureId, email, fullName) VALUES (?, ?, 1, ?, ?)', [username, password, email, fullName]);
-        const result2 = await db.query('SELECT id FROM Usuario WHERE email = ? AND password = ?', [email, password]);
-        const id = result2[0].id;
-        const accesstoken = jwt.sign({id: id}, process.env.ACCESS_TOKEN_SECRET, { expiresIn: 60*60 })
-        res.status(200).json({ accesstoken: accesstoken })
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    res.json(result.recordset[0]); // Enviar la respuesta con los datos del usuario obtenidos
+  } catch (error) {
+
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+  }
 };
 
+export const getUsersAccount = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const { id } = req.user;
+    request.input('UserId', mssql.Int, id);
+    const result = await request.execute('getAccounts');
+    res.json(result.recordset); // Enviar la respuesta con los datos del usuario obtenidos
+  } catch (error) {
 
-export const registerAddress = async (req, res) => {
-    try {
-        const { address, city, state, country, postalCode } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const resultAddress = await db.query('UPDATE Usuario SET address = ? WHERE id = ?', [address, id]);
-        const resultCity = await db.query('UPDATE Usuario SET city = ? WHERE id = ?', [city, id]);
-        const resultState = await db.query('UPDATE Usuario SET state = ? WHERE id = ?', [state, id]);
-        const resultCountry = await db.query('UPDATE Usuario SET country = ? WHERE id = ?', [country, id]);
-        const resultPostalCode = await db.query('UPDATE Usuario SET postalCode = ? WHERE id = ?', [postalCode, id]);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+  }
+};
+export const getAmigosUsersAccount = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const { accountId } = req.params; // Obtén accountId directamente de req.params
+    request.input('UserId', mssql.Int, accountId);
+    const result = await request.execute('getAccounts');
+    res.json(result.recordset); // Enviar la respuesta con los datos del usuario obtenidos
+  } catch (error) {
 
-}
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+  }
 
-export const checkEmail = async (req, res) => {
-    const { email } = req.query;
-
-    try {
-        const result = await db.query('SELECT id FROM Usuario WHERE email = ?', [email]);
-        res.status(200).json(result);
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
 };
 
-export const checkUsername = async (req, res) => {
-    const { username } = req.query;
+export const addUsersAccount = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const { nombreCuenta, plataforma, enlace } = req.body;
+    const { id } = req.user;
+    request.input('UserID', mssql.Int, id);
+    request.input('PlatformName', mssql.NVarChar(50), plataforma);
+    request.input('ProfileLink', mssql.NVarChar(255), enlace);
+    request.input('NombreUsuario', mssql.NVarChar(255), nombreCuenta);
+    request.output('Respuesta', mssql.NVarChar(mssql.MAX));
+    const result = await request.execute('addAccounts');
+    const respuesta = result.output.Respuesta;
+    res.json(respuesta);
+  } catch (error) {
 
-    try {
-        const result = await db.query('SELECT id FROM Usuario WHERE username = ?', [username]);
-        res.status(200).json(result);
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message });
+  }
 };
 
-export const changeUsername = async (req, res) => {
-    try {
-        const { username } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET username = ? WHERE id = ?', [username, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
+export const deleteUserAccounts = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const accountId = req.params.accountId; // Suponiendo que el ID del juego se obtiene de los parámetros de la solicitud
+    request.input('ID', mssql.Int, accountId);
+    const result = await request.execute('DeleteAccountByID');
+    const respuesta = result.recordset; // Acceder a la respuesta desde el objeto result
+    console.log(respuesta);
+    res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
+  } catch (error) {
 
-export const changeEmail = async (req, res) => {
-    try {
-        const { email } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET email = ? WHERE id = ?', [email, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+  }
 };
+export const updateUserData = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const { nombre, email, contraseña, juegoFavorito } = req.body;
+    const { id } = req.user;
 
-export const changePassword = async (req, res) => {
-    try {
-        const { password } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET password = ? WHERE id = ?', [password, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    request.input('UserID', mssql.Int, id);
+    request.input('NewName', mssql.NVarChar(50), nombre);
+    request.input('NewPassword', mssql.NVarChar(50), contraseña);
+    request.input('NewGameFavorite', mssql.NVarChar(50), juegoFavorito);
+    request.input('NewEmail', mssql.NVarChar(100), email);
+    const result = await request.execute('editUser');
+    const respuesta = result.recordset;; // Acceder a la respuesta desde el objeto result
+    res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
+  } catch (error) {
+
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+  }
 };
+export const createUser = async (req, res) => {
+  try {
+    const db = await getConnection();
+    const request = db.request();
+    const { nombre, email, contraseña, juegoFavorito } = req.body;
 
-export const changeProfilePictureId = async (req, res) => {
-    try {
-        const { profilePictureId } = req.body;
-        console.log('Profile Picture ID:', profilePictureId);
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET profilePictureId = ? WHERE id = ?', [profilePictureId, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
+    request.input('nombre_usuario', mssql.NVarChar(255), nombre);
+    request.input('correo_electronico', mssql.NVarChar(255), email);
+    request.input('contrasena', mssql.NVarChar(255), contraseña);
+    request.input('juegoFavorito', mssql.NVarChar(255), juegoFavorito);
+    request.output('repetido', mssql.NVarChar(50));
 
-export const changeFullName = async (req, res) => {
-    try {
-        const { fullName } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET fullName = ? WHERE id = ?', [fullName, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
+    const result = await request.execute('crearCuenta');
+    const respuesta = result.output.repetido; // Acceder a la respuesta desde el objeto result
+    console.log(respuesta);
+    res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
+  } catch (error) {
 
-export const changeAddress = async (req, res) => {
-    try {
-        const { address } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET address = ? WHERE id = ?', [address, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-
-export const changeCity = async (req, res) => {
-    try {
-        const { city } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET city = ? WHERE id = ?', [city, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-
-export const changeState = async (req, res) => {
-    try {
-        const { state } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET state = ? WHERE id = ?', [state, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-
-export const changeCountry = async (req, res) => {
-    try {
-        const { country } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET state = ? WHERE id = ?', [state, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-
-export const changePostalCode = async (req, res) => {
-    try {
-        const { postalCode } = req.body;
-        const { id } = req.user;
-        console.log(id);
-        const result = await db.query('UPDATE Usuario SET postalCode = ? WHERE id = ?', [postalCode, id]);
-        console.log(result);
-        res.status(200).json({ message: 'User updated successfully', user: id });
-    } catch (err) {
-        console.log('Error:', err.message);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+  }
 };

@@ -1,25 +1,45 @@
-import mysql from 'mysql2';
-import util from 'util';
-import config from '../config';
+import sql from 'mssql';
+import { config } from 'dotenv';
 
-const connection = mysql.createConnection({
-    host: config.db_host,
-    database: config.db_name,
-    user: config.db_user,
-    password: config.db_passwd,
-    port: config.db_port,
-    connectTimeout: 30000
-});
+config();
 
-export const getConnection = () => {
-    return {
-        query(sql, args) {
-          return util.promisify(connection.query)
-            .call(connection, sql, args);
-        },
-        close() {
-          return util.promisify(connection.end)
-            .call(connection);
+const dbConfig = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWD,
+    database: process.env.DB_NAME,
+    server: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT),
+    pool: {
+        max: 10,
+        min: 0,
+        idleTimeoutMillis: 30000
+    }, // Asegúrate de parsear el puerto a un número entero
+    options: {
+        encrypt: true, // Importante si estás utilizando Azure SQL Database
+        trustServerCertificate: false
+    }
+};
+
+let pool;
+
+(async () => {
+    try {
+        pool = await sql.connect(dbConfig);
+        console.log('Conexión exitosa a la base de datos.');
+    } catch (error) {
+        console.error('Error al conectar a la base de datos:', error.message);
+    }
+})();
+
+export const getConnection = async () => {
+    try {
+        // Verifica si la conexión está establecida antes de devolverla
+        if (!pool) {
+            pool = await sql.connect(dbConfig);
         }
-    };
+        return pool;
+    } catch (error) {
+        console.error('Error al obtener la conexión:', error.message);
+        throw error;
+    }
 };
