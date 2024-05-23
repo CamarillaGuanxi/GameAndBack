@@ -6,21 +6,27 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.query;
   try {
     const db = await getConnection();
     const result = await db.request()
-      .input('email', mssql.NVarChar(255), email)
-      .query('SELECT id, contraseña FROM USUARIO WHERE email = @email');
+      .input('email', email)
+      .query(`
+                SELECT id, [contraseña] FROM USUARIO 
+                WHERE email = @email 
+            `);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const usuario = result.recordset[0];
+    console.log(usuario);
 
     // Comparar la contraseña ingresada con el hash almacenado
     const validPassword = await bcrypt.compare(password, usuario.contraseña);
+    console.log(validPassword);
+
     if (!validPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -119,15 +125,18 @@ export const updateUserData = async (req, res) => {
     const request = db.request();
     const { nombre, email, contraseña, juegoFavorito } = req.body;
     const { id } = req.user;
-
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
     request.input('UserID', mssql.Int, id);
-    request.input('NewName', mssql.NVarChar(50), nombre);
-    request.input('NewPassword', mssql.NVarChar(50), contraseña);
-    request.input('NewGameFavorite', mssql.NVarChar(50), juegoFavorito);
-    request.input('NewEmail', mssql.NVarChar(100), email);
+    request.input('NewName', mssql.NVarChar(mssql.MAX), nombre);
+    request.input('NewPassword', mssql.NVarChar(mssql.MAX), hashedPassword);
+    request.input('NewGameFavorite', mssql.NVarChar(mssql.MAX), juegoFavorito);
+    request.input('NewEmail', mssql.NVarChar(mssql.MAX), email);
+
     const result = await request.execute('editUser');
-    const respuesta = result.recordset;; // Acceder a la respuesta desde el objeto result
-    res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
+
+    const respuesta = result.recordset;;
+    res.json(respuesta);
   } catch (error) {
 
     res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
@@ -150,7 +159,6 @@ export const createUser = async (req, res) => {
 
     const result = await request.execute('crearCuenta');
     const respuesta = result.output.repetido; // Acceder a la respuesta desde el objeto result
-    console.log(respuesta);
     res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
