@@ -11,7 +11,7 @@ export const loginUser = async (req, res) => {
     const db = await getConnection();
     const result = await db.request()
       .input('email', mssql.NVarChar(255), email)
-      .query('SELECT id, contrasena FROM USUARIO WHERE email = @email');
+      .query('SELECT id, contraseña FROM USUARIO WHERE email = @email');
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -20,7 +20,7 @@ export const loginUser = async (req, res) => {
     const usuario = result.recordset[0];
 
     // Comparar la contraseña ingresada con el hash almacenado
-    const validPassword = await bcrypt.compare(password, usuario.contrasena);
+    const validPassword = await bcrypt.compare(password, usuario.contraseña);
     if (!validPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -139,13 +139,12 @@ export const createUser = async (req, res) => {
     const request = db.request();
     const { nombre, email, contraseña, juegoFavorito } = req.body;
 
-    // Encriptar la contraseña antes de almacenarla
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
 
     request.input('nombre_usuario', mssql.NVarChar(255), nombre);
     request.input('correo_electronico', mssql.NVarChar(255), email);
-    request.input('contrasena', mssql.NVarChar(255), hashedPassword);
+    request.input('contraseña', mssql.NVarChar(255), hashedPassword);
     request.input('juegoFavorito', mssql.NVarChar(255), juegoFavorito);
     request.output('repetido', mssql.NVarChar(50));
 
