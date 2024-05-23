@@ -144,7 +144,7 @@ export const createUser = async (req, res) => {
 
     request.input('nombre_usuario', mssql.NVarChar(255), nombre);
     request.input('correo_electronico', mssql.NVarChar(255), email);
-    request.input('contraseña', mssql.NVarChar(255), hashedPassword);
+    request.input('contrasena', mssql.NVarChar(255), hashedPassword);
     request.input('juegoFavorito', mssql.NVarChar(255), juegoFavorito);
     request.output('repetido', mssql.NVarChar(50));
 
