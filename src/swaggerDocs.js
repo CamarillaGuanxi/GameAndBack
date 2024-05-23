@@ -10,6 +10,9 @@ const options = {
         info: {
             title: "REST API Game and match",
             version,
+            description: `Esta API fue desarrollada por Valentino Dominguez Rabanal 
+            con el proposito de brindar funcionalidad e interaccion entre la app GameAndMatch 
+            y su base de datos.`,
         },
         components: {
             securitySchemes: {
@@ -43,5 +46,6 @@ function swaggerDocs(app, port) {
 
     console.log(`Docs available at http://localhost:${port}/docs`);
 }
+
 
 export default swaggerDocs;

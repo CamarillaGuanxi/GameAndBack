@@ -1,27 +1,29 @@
 import { getConnection } from '../database/db';
 require('dotenv').config();
 import mssql from 'mssql';
+import bcrypt from 'bcrypt';
 
 import jwt from 'jsonwebtoken';
 
 export const loginUser = async (req, res) => {
-  const { email, password } = req.query;
+  const { email, password } = req.body;
   try {
     const db = await getConnection();
     const result = await db.request()
-      .input('email', email)
-      .input('password', password)
-      .query(`
-                SELECT id FROM USUARIO 
-                WHERE email = @email 
-                AND contraseña = @password
-            `);
+      .input('email', mssql.NVarChar(255), email)
+      .query('SELECT id, contrasena FROM USUARIO WHERE email = @email');
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const usuario = result.recordset[0];
+
+    // Comparar la contraseña ingresada con el hash almacenado
+    const validPassword = await bcrypt.compare(password, usuario.contrasena);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
 
     // Generar el token de acceso con solo el ID del usuario
     const accessToken = jwt.sign({ id: usuario.id }, process.env.ACCESS_TOKEN_SECRET);
@@ -137,9 +139,13 @@ export const createUser = async (req, res) => {
     const request = db.request();
     const { nombre, email, contraseña, juegoFavorito } = req.body;
 
+    // Encriptar la contraseña antes de almacenarla
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(contraseña, saltRounds);
+
     request.input('nombre_usuario', mssql.NVarChar(255), nombre);
     request.input('correo_electronico', mssql.NVarChar(255), email);
-    request.input('contrasena', mssql.NVarChar(255), contraseña);
+    request.input('contrasena', mssql.NVarChar(255), hashedPassword);
     request.input('juegoFavorito', mssql.NVarChar(255), juegoFavorito);
     request.output('repetido', mssql.NVarChar(50));
 
@@ -148,7 +154,6 @@ export const createUser = async (req, res) => {
     console.log(respuesta);
     res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
   } catch (error) {
-
     res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
   }
 };
