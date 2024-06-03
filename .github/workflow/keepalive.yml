@@ -1,0 +1,33 @@
+name: Keep-Alive
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Run Keep-Alive Script
+      run: |
+        sudo apt-get install -y python3-pip
+        pip3 install requests
+        echo "
+        import time
+        import requests
+
+        urls = [
+            'https://gameandback.onrender.com/ping',
+            'https://serviciochatgam.onrender.com/ping'
+        ]
+
+        while True:
+            for url in urls:
+                try:
+                    response = requests.get(url)
+                    print(f'Keep-alive request sent to {url}. Status code: {response.status_code}')
+                except Exception as e:
+                    print(f'Error sending request to {url}: {e}')
+            time.sleep(300)  # Espera 5 minutos
+        " > keepalive.py
+        python3 keepalive.py
