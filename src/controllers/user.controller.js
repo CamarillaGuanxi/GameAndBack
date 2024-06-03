@@ -21,11 +21,9 @@ export const loginUser = async (req, res) => {
     }
 
     const usuario = result.recordset[0];
-    console.log(usuario);
 
     // Comparar la contraseña ingresada con el hash almacenado
     const validPassword = await bcrypt.compare(password, usuario.contraseña);
-    console.log(validPassword);
 
     if (!validPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -112,7 +110,6 @@ export const deleteUserAccounts = async (req, res) => {
     request.input('ID', mssql.Int, accountId);
     const result = await request.execute('DeleteAccountByID');
     const respuesta = result.recordset; // Acceder a la respuesta desde el objeto result
-    console.log(respuesta);
     res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
   } catch (error) {
 
@@ -139,7 +136,7 @@ export const updateUserData = async (req, res) => {
     res.json(respuesta);
   } catch (error) {
 
-    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message });
   }
 };
 export const createUser = async (req, res) => {
@@ -158,9 +155,9 @@ export const createUser = async (req, res) => {
     request.output('repetido', mssql.NVarChar(50));
 
     const result = await request.execute('crearCuenta');
-    const respuesta = result.output.repetido; // Acceder a la respuesta desde el objeto result
-    res.json(respuesta); // Enviar la respuesta con los datos del usuario obtenidos
+    const respuesta = result.output.repetido;
+    res.json(respuesta);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message }); // Manejar el error y enviar una respuesta de error
+    res.status(500).json({ error: 'Error al obtener los datos del usuario: ' + error.message });
   }
 };

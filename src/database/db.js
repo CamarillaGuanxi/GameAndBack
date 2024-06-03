@@ -1,6 +1,7 @@
 import sql from 'mssql';
 import { config } from 'dotenv';
-
+const axios = require('axios');
+const msRestNodeAuth = require('@azure/ms-rest-nodeauth');
 config();
 
 const dbConfig = {
@@ -23,6 +24,10 @@ const dbConfig = {
 let pool;
 
 (async () => {
+    const response = await axios.get('https://api.ipify.org?format=json');
+
+    console.log('IP ' + response.data.ip);
+
     try {
         pool = await sql.connect(dbConfig);
         console.log('Conexión exitosa a la base de datos.');
