@@ -82,7 +82,7 @@ A continuación, se encuentran algunos de los principales endpoints disponibles:
 
 - `GET /games`: Obtiene una lista de todos los juegos 🎮.
 - `GET /allTipoPartidas/{idjuego}`: Obtiene todas las partidas referentes a un juego 🔍.
-- `PUT /changeUserData`: Actualiza un usuario existente ✏️.
+- `PUT /changeUserData`: Actualiza los datos de un usuario existente ✏️.
 - `DELETE /deleteSala/{id}`: Elimina una sala 🗑️.
 
 ### Ejemplo de uso 🔧
