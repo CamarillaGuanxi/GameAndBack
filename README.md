@@ -87,18 +87,6 @@ A continuación, se encuentran algunos de los principales endpoints disponibles:
 
 ### Ejemplo de uso 🔧
 
-**Crear un juego:**
-
-```bash
-POST /games
-Content-Type: application/json
-Authorization: Bearer <tu_token_aqui>
-
-{
-  "name": "Nuevo Juego",
-  "genre": "Aventura"
-}
-```
 **Obtener todos los juegos:**
 
 ```bash
