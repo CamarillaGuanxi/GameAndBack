@@ -81,10 +81,9 @@ Swagger proporciona una interfaz interactiva que te permite ver todos los endpoi
 A continuación, se encuentran algunos de los principales endpoints disponibles:
 
 - `GET /games`: Obtiene una lista de todos los juegos 🎮.
-- `POST /games`: Crea un nuevo juego 🆕.
-- `GET /games/{id}`: Obtiene detalles de un juego específico 🔍.
-- `PUT /games/{id}`: Actualiza un juego existente ✏️.
-- `DELETE /games/{id}`: Elimina un juego 🗑️.
+- `GET /allTipoPartidas/{idjuego}`: Obtiene todas las partidas referentes a un juego 🔍.
+- `PUT /changeUserData`: Actualiza un usuario existente ✏️.
+- `DELETE /deleteSala/{id}`: Elimina una sala 🗑️.
 
 ### Ejemplo de uso 🔧
 
